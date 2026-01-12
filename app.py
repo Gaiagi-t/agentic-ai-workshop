@@ -1,7 +1,7 @@
 import streamlit as st
 import config
 from utils.questions import QUESTIONS, get_total_questions
-from utils.data_manager import download_button, upload_button, render_answers_sidebar, get_progress_stats, render_new_project_button, auto_save
+from utils.data_manager import download_button, upload_button, render_answers_sidebar, get_progress_stats, render_new_project_button, auto_save, load_from_cookies
 from utils.voice_input import render_voice_or_text_input
 from utils.ai_analysis import analyze_with_claude, extract_score, generate_quick_insights
 from utils.visualizations import (
@@ -110,6 +110,9 @@ def init_session_state():
 
 
 init_session_state()
+
+# Try to restore data from cookies on page load
+load_from_cookies()
 
 # Header
 st.markdown(f"""

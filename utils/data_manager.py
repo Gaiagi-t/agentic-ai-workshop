@@ -2,57 +2,58 @@ import json
 import streamlit as st
 from datetime import datetime
 import pandas as pd
-import streamlit.components.v1 as components
+import extra_streamlit_components as stx
 
-# Key for localStorage
-STORAGE_KEY = "agentic_ai_workshop_data"
+# Cookie key for persistence
+COOKIE_KEY = "agentic_workshop"
 
-def save_to_local_storage():
-    """Save current session data to browser localStorage"""
-    data = {
-        "answers": st.session_state.get("answers", {}),
-        "current_question": st.session_state.get("current_question_index", 0),
-        "section": st.session_state.get("current_section", "AS-IS"),
-        "saved_at": datetime.now().isoformat()
-    }
-    json_data = json.dumps(data, ensure_ascii=False)
+@st.cache_resource
+def get_cookie_manager():
+    """Get singleton cookie manager instance"""
+    return stx.CookieManager()
 
-    # Inject JavaScript to save to localStorage
-    js_code = f"""
-    <script>
-        localStorage.setItem('{STORAGE_KEY}', JSON.stringify({json_data}));
-    </script>
-    """
-    components.html(js_code, height=0)
+def save_to_cookies():
+    """Save current session data to browser cookies"""
+    try:
+        cookie_manager = get_cookie_manager()
+        data = {
+            "answers": st.session_state.get("answers", {}),
+            "current_question": st.session_state.get("current_question_index", 0),
+            "section": st.session_state.get("current_section", "AS-IS"),
+            "saved_at": datetime.now().isoformat()
+        }
+        # Save as JSON string in cookie (expires in 7 days)
+        cookie_manager.set(COOKIE_KEY, json.dumps(data, ensure_ascii=False), expires_at=datetime.now() + pd.Timedelta(days=7))
+    except Exception as e:
+        # Silently fail if cookies not available
+        pass
 
-def load_from_local_storage():
-    """
-    Create JavaScript that will load data from localStorage.
-    Returns HTML component that sends data back via query params.
-    """
-    js_code = f"""
-    <script>
-        const data = localStorage.getItem('{STORAGE_KEY}');
-        if (data) {{
-            // Send data to Streamlit via hidden form
-            const parsed = JSON.parse(data);
-            if (parsed && parsed.answers && Object.keys(parsed.answers).length > 0) {{
-                // Use postMessage to communicate with parent
-                window.parent.postMessage({{type: 'localStorage', data: parsed}}, '*');
-            }}
-        }}
-    </script>
-    """
-    components.html(js_code, height=0)
+def load_from_cookies():
+    """Load data from browser cookies and restore session state"""
+    try:
+        cookie_manager = get_cookie_manager()
+        saved_data = cookie_manager.get(COOKIE_KEY)
 
-def clear_local_storage():
-    """Clear data from browser localStorage"""
-    js_code = f"""
-    <script>
-        localStorage.removeItem('{STORAGE_KEY}');
-    </script>
-    """
-    components.html(js_code, height=0)
+        if saved_data:
+            data = json.loads(saved_data) if isinstance(saved_data, str) else saved_data
+
+            # Only restore if we don't already have data
+            if not st.session_state.get("answers") and data.get("answers"):
+                st.session_state.answers = data.get("answers", {})
+                st.session_state.current_question_index = data.get("current_question", 0)
+                st.session_state.current_section = data.get("section", "AS-IS")
+                return True
+    except Exception as e:
+        pass
+    return False
+
+def clear_cookies():
+    """Clear saved data from cookies"""
+    try:
+        cookie_manager = get_cookie_manager()
+        cookie_manager.delete(COOKIE_KEY)
+    except Exception:
+        pass
 
 def reset_project():
     """Reset all session state and start a new project"""
@@ -67,8 +68,8 @@ def reset_project():
     for key in keys_to_clear:
         del st.session_state[key]
 
-    # Clear localStorage
-    clear_local_storage()
+    # Clear cookies
+    clear_cookies()
 
 def render_new_project_button():
     """Render button to start a new project"""
@@ -78,9 +79,9 @@ def render_new_project_button():
         st.rerun()
 
 def auto_save():
-    """Auto-save current state to localStorage (call periodically)"""
+    """Auto-save current state to cookies (call periodically)"""
     if st.session_state.get("answers"):
-        save_to_local_storage()
+        save_to_cookies()
 
 def export_to_json():
     """Export current session data to JSON format"""
