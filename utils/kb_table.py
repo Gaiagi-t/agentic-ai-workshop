@@ -68,22 +68,33 @@ def update_answers_from_table(edited_df, answers):
     """
     Update session state answers from edited table
     Converts table data back to text format for storage
+    Also syncs text widget keys for proper UI reflection
     """
     # Extract steps
     steps = edited_df["Attività"].tolist()
-    st.session_state.answers["as_is_step"] = "\n".join(steps)
+    steps_text = "\n".join(steps)
+    st.session_state.answers["as_is_step"] = steps_text
+    # Sync text widget
+    if "text_as_is_step" in st.session_state:
+        st.session_state["text_as_is_step"] = steps_text
 
     # Extract roles
     ruoli = edited_df["Chi la svolge"].tolist()
     ruoli_text = "\n".join([r if r else "" for r in ruoli])
     if ruoli_text.strip():
         st.session_state.answers["as_is_ruoli"] = ruoli_text
+        # Sync text widget
+        if "text_as_is_ruoli" in st.session_state:
+            st.session_state["text_as_is_ruoli"] = ruoli_text
 
     # Extract time
     tempo = edited_df["Tempo"].tolist()
     tempo_text = "\n".join([t if t else "" for t in tempo])
     if tempo_text.strip():
         st.session_state.answers["as_is_tempo"] = tempo_text
+        # Sync text widget
+        if "text_as_is_tempo" in st.session_state:
+            st.session_state["text_as_is_tempo"] = tempo_text
 
     # Note: Strumenti and Problemi are general (not per-step), so we don't update them here
 
@@ -179,6 +190,10 @@ def render_as_is_summary_table(current_question_id, answers):
             new_value = edited_df.iloc[i]["Contenuto"]
             if new_value:
                 st.session_state.answers[key] = str(new_value)
+                # Also update the text widget key so it reflects the change
+                widget_key = f"text_{key}"
+                if widget_key in st.session_state:
+                    st.session_state[widget_key] = str(new_value)
         st.rerun()
 
     st.divider()
@@ -471,6 +486,10 @@ def render_to_be_kb_table(current_question_id, answers):
             new_value = edited_df.iloc[i]["Contenuto"]
             if new_value:
                 st.session_state.answers[key] = str(new_value)
+                # Also update the text widget key so it reflects the change
+                widget_key = f"text_{key}"
+                if widget_key in st.session_state:
+                    st.session_state[widget_key] = str(new_value)
         st.rerun()
 
     # Legend
