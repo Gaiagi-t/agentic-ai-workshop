@@ -3,6 +3,8 @@ import pandas as pd
 import config
 import re
 
+# Version: 2.0 - Fixed None handling in tables
+
 def render_kb_table(section_name, current_question_id, answers):
     """
     Render progressive knowledge base table showing all collected answers
