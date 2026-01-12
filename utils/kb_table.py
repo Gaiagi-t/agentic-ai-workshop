@@ -201,7 +201,7 @@ def render_as_is_summary_table(current_question_id, answers):
                 widget_key = f"text_{key}"
                 if widget_key in st.session_state:
                     st.session_state[widget_key] = str(new_value)
-        st.rerun()
+        # Note: Don't call st.rerun() here as it interferes with navigation buttons
 
     st.divider()
 
@@ -336,8 +336,7 @@ def render_as_is_kb_table_step_based(current_question_id, answers):
     if edited_state != current_state:
         # User made edits in the table - update answers
         update_answers_from_table(edited_df, answers)
-        # Force rerun to reflect changes immediately
-        st.rerun()
+        # Note: Don't call st.rerun() here as it interferes with navigation buttons
 
     # Progress indicator
     col1, col2, col3 = st.columns(3)
@@ -498,7 +497,7 @@ def render_to_be_kb_table(current_question_id, answers):
                 widget_key = f"text_{key}"
                 if widget_key in st.session_state:
                     st.session_state[widget_key] = str(new_value)
-        st.rerun()
+        # Note: Don't call st.rerun() here as it interferes with navigation buttons
 
     # Legend
     col1, col2, col3 = st.columns(3)

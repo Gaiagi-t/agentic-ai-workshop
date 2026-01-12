@@ -234,38 +234,55 @@ def render_question(question, section_name):
             st.session_state.answers[question_id] = answer
 
     elif question["tipo"] == "agentic_flow_selector":
-        st.markdown("**Seleziona il tipo di flusso agentico:**")
+        st.markdown("**Configura il flusso agentico:**")
 
-        # Display template options
-        template_names = [t["name"] for t in config.AGENTIC_FLOW_TEMPLATES]
-
-        selected = st.selectbox(
-            "Tipo di flusso",
-            options=template_names,
-            index=0,
-            key=f"input_{question_id}",
-            label_visibility="collapsed"
+        # Step 1: Single vs Multi Agent
+        agent_type = st.radio(
+            "Numero di agenti",
+            options=["Single Agent", "Multi-Agent"],
+            horizontal=True,
+            key=f"agent_type_{question_id}",
+            help="Scegli se usare un singolo agente o più agenti specializzati"
         )
 
-        # Show template details
-        selected_template = next(
-            (t for t in config.AGENTIC_FLOW_TEMPLATES if t["name"] == selected),
-            None
+        # Step 2: Flow patterns (multiselect for patterns that can be combined)
+        pattern_templates = [t for t in config.AGENTIC_FLOW_TEMPLATES if t["name"] not in ["Single Agent", "Multi-Agent"]]
+        pattern_names = [t["name"] for t in pattern_templates]
+
+        st.markdown("**Pattern di flusso (puoi selezionarne più di uno):**")
+        selected_patterns = st.multiselect(
+            "Pattern",
+            options=pattern_names,
+            default=[],
+            key=f"patterns_{question_id}",
+            label_visibility="collapsed",
+            help="Seleziona i pattern da combinare"
         )
 
-        if selected_template:
-            col1, col2 = st.columns([1, 3])
-            with col1:
-                st.markdown(f"## {selected_template['icon']}")
-            with col2:
-                st.markdown(f"**{selected_template['name']}**")
-                st.caption(selected_template['description'])
+        # Show selected templates info
+        all_selected = [agent_type] + selected_patterns
 
-            # Show diagram
-            with st.expander("📊 Visualizza diagramma"):
-                render_mermaid_diagram(selected_template['mermaid'])
+        for template_name in all_selected:
+            selected_template = next(
+                (t for t in config.AGENTIC_FLOW_TEMPLATES if t["name"] == template_name),
+                None
+            )
+            if selected_template:
+                with st.container():
+                    col1, col2 = st.columns([1, 5])
+                    with col1:
+                        st.markdown(f"## {selected_template['icon']}")
+                    with col2:
+                        st.markdown(f"**{selected_template['name']}**")
+                        st.caption(selected_template['description'])
 
-        st.session_state.answers[question_id] = selected
+                    # Show diagram in expander
+                    with st.expander(f"📊 Diagramma: {selected_template['name']}"):
+                        render_mermaid_diagram(selected_template['mermaid'])
+
+        # Save combined selection
+        combined_selection = " + ".join(all_selected) if all_selected else agent_type
+        st.session_state.answers[question_id] = combined_selection
 
     # Mark if required and not answered
     if question.get("obbligatorio") and not st.session_state.answers.get(question_id):
