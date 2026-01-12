@@ -1,7 +1,7 @@
 import streamlit as st
 import config
 from utils.questions import QUESTIONS, get_total_questions
-from utils.data_manager import download_button, upload_button, render_answers_sidebar, get_progress_stats
+from utils.data_manager import download_button, upload_button, render_answers_sidebar, get_progress_stats, render_new_project_button, auto_save
 from utils.voice_input import render_voice_or_text_input
 from utils.ai_analysis import analyze_with_claude, extract_score, generate_quick_insights
 from utils.visualizations import (
@@ -145,6 +145,7 @@ with st.sidebar:
 
     # Export/Import
     st.markdown("### 💾 Gestione Progetto")
+    render_new_project_button()
     download_button()
     upload_button()
 
@@ -501,6 +502,9 @@ elif section == "TO-BE":
 elif section == "Analisi Finale":
     st.session_state.current_section = "Analisi Finale"
     render_analysis_section()
+
+# Auto-save to localStorage
+auto_save()
 
 # Footer
 st.markdown(f"""

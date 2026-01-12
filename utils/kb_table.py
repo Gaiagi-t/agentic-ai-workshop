@@ -316,7 +316,7 @@ def render_as_is_kb_table_step_based(current_question_id, answers):
         use_container_width=True,
         height=min(len(steps) * 50 + 100, 400),
         disabled=["#"],  # Lock the step number column
-        num_rows="dynamic",  # Allow adding/removing rows
+        num_rows="fixed",  # Fixed rows - add steps in text input
         column_config={
             "#": st.column_config.NumberColumn("Step", width="small"),
             "Attività": st.column_config.TextColumn("Attività", width="large"),

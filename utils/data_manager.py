@@ -2,6 +2,85 @@ import json
 import streamlit as st
 from datetime import datetime
 import pandas as pd
+import streamlit.components.v1 as components
+
+# Key for localStorage
+STORAGE_KEY = "agentic_ai_workshop_data"
+
+def save_to_local_storage():
+    """Save current session data to browser localStorage"""
+    data = {
+        "answers": st.session_state.get("answers", {}),
+        "current_question": st.session_state.get("current_question_index", 0),
+        "section": st.session_state.get("current_section", "AS-IS"),
+        "saved_at": datetime.now().isoformat()
+    }
+    json_data = json.dumps(data, ensure_ascii=False)
+
+    # Inject JavaScript to save to localStorage
+    js_code = f"""
+    <script>
+        localStorage.setItem('{STORAGE_KEY}', JSON.stringify({json_data}));
+    </script>
+    """
+    components.html(js_code, height=0)
+
+def load_from_local_storage():
+    """
+    Create JavaScript that will load data from localStorage.
+    Returns HTML component that sends data back via query params.
+    """
+    js_code = f"""
+    <script>
+        const data = localStorage.getItem('{STORAGE_KEY}');
+        if (data) {{
+            // Send data to Streamlit via hidden form
+            const parsed = JSON.parse(data);
+            if (parsed && parsed.answers && Object.keys(parsed.answers).length > 0) {{
+                // Use postMessage to communicate with parent
+                window.parent.postMessage({{type: 'localStorage', data: parsed}}, '*');
+            }}
+        }}
+    </script>
+    """
+    components.html(js_code, height=0)
+
+def clear_local_storage():
+    """Clear data from browser localStorage"""
+    js_code = f"""
+    <script>
+        localStorage.removeItem('{STORAGE_KEY}');
+    </script>
+    """
+    components.html(js_code, height=0)
+
+def reset_project():
+    """Reset all session state and start a new project"""
+    # Clear session state
+    st.session_state.answers = {}
+    st.session_state.current_question_index = 0
+    st.session_state.current_section = "AS-IS"
+    st.session_state.analysis_results = None
+
+    # Clear any widget keys that might have cached values
+    keys_to_clear = [k for k in st.session_state.keys() if k.startswith("text_") or k.startswith("temp_")]
+    for key in keys_to_clear:
+        del st.session_state[key]
+
+    # Clear localStorage
+    clear_local_storage()
+
+def render_new_project_button():
+    """Render button to start a new project"""
+    if st.button("🆕 Nuova Mappatura", help="Inizia un nuovo progetto da zero", type="secondary"):
+        reset_project()
+        st.success("✅ Nuovo progetto iniziato!")
+        st.rerun()
+
+def auto_save():
+    """Auto-save current state to localStorage (call periodically)"""
+    if st.session_state.get("answers"):
+        save_to_local_storage()
 
 def export_to_json():
     """Export current session data to JSON format"""
