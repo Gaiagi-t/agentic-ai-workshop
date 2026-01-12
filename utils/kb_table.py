@@ -123,78 +123,63 @@ def parse_list_items(text):
     return items
 
 def render_as_is_summary_table(current_question_id, answers):
-    """Render AS-IS summary table showing all fields with status"""
+    """Render AS-IS summary table - EDITABLE version"""
+
+    st.caption("💡 Clicca su una cella nella colonna 'Contenuto' per modificarla direttamente")
+
+    # Map field keys to display names
+    field_keys = ["as_is_processo", "as_is_step", "as_is_ruoli", "as_is_strumenti", "as_is_tempo", "as_is_problemi"]
+    field_names = [
+        "🎯 Processo",
+        "📝 Step del processo",
+        "👥 Chi lo esegue",
+        "🛠️ Strumenti utilizzati",
+        "⏱️ Tempo richiesto",
+        "⚠️ Problemi e criticità"
+    ]
 
     # Define the KB structure for AS-IS
     kb_data = {
-        "Campo": [
-            "🎯 Processo",
-            "📝 Step del processo",
-            "👥 Chi lo esegue",
-            "🛠️ Strumenti utilizzati",
-            "⏱️ Tempo richiesto",
-            "⚠️ Problemi e criticità"
-        ],
+        "Campo": field_names,
         "Contenuto": [
-            truncate_text(answers.get("as_is_processo", ""), 50),
-            truncate_text(answers.get("as_is_step", ""), 50),
-            truncate_text(answers.get("as_is_ruoli", ""), 50),
-            truncate_text(answers.get("as_is_strumenti", ""), 50),
-            truncate_text(answers.get("as_is_tempo", ""), 50),
-            truncate_text(answers.get("as_is_problemi", ""), 50)
-        ],
-        "Status": []
+            answers.get("as_is_processo", ""),
+            answers.get("as_is_step", ""),
+            answers.get("as_is_ruoli", ""),
+            answers.get("as_is_strumenti", ""),
+            answers.get("as_is_tempo", ""),
+            answers.get("as_is_problemi", "")
+        ]
     }
-
-    # Determine status for each field
-    question_map = {
-        "as_is_processo": 0,
-        "as_is_step": 1,
-        "as_is_ruoli": 2,
-        "as_is_strumenti": 3,
-        "as_is_tempo": 4,
-        "as_is_problemi": 5
-    }
-
-    current_index = question_map.get(current_question_id, -1)
-
-    for i, question_id in enumerate(question_map.keys()):
-        if i < current_index:
-            kb_data["Status"].append("✅")
-        elif i == current_index:
-            kb_data["Status"].append("✏️")
-        else:
-            kb_data["Status"].append("⏳")
 
     # Create DataFrame
     df = pd.DataFrame(kb_data)
 
-    # Style the table
-    def style_row(row):
-        if row["Status"] == "✏️":
-            return [f'background-color: {config.COLORS["accent"]}; font-weight: bold'] * len(row)
-        elif row["Status"] == "✅":
-            return [f'background-color: #E8F5E9'] * len(row)
-        else:
-            return ['background-color: #F5F5F5; opacity: 0.6'] * len(row)
+    # Store original state for comparison
+    original_state = df.to_dict('records')
 
-    # Display table
-    styled_df = df.style.apply(style_row, axis=1)
-    st.dataframe(
-        styled_df,
+    # Display editable table
+    edited_df = st.data_editor(
+        df,
+        key="as_is_summary_editor",
         hide_index=True,
         use_container_width=True,
-        height=280
+        height=280,
+        disabled=["Campo"],  # Lock the field names column
+        column_config={
+            "Campo": st.column_config.TextColumn("Campo", width="medium"),
+            "Contenuto": st.column_config.TextColumn("Contenuto", width="large")
+        }
     )
 
-    # Legend
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.caption("✅ Completato")
-    with col2:
-        st.caption("✏️ In compilazione")
-    with col3:
-        st.caption("⏳ Da completare")
+    # Check if table was edited and update answers
+    edited_state = edited_df.to_dict('records')
+    if edited_state != original_state:
+        # Update session state answers from edited table
+        for i, key in enumerate(field_keys):
+            new_value = edited_df.iloc[i]["Contenuto"]
+            if new_value:
+                st.session_state.answers[key] = str(new_value)
+        st.rerun()
 
     st.divider()
 
@@ -426,90 +411,67 @@ def render_as_is_kb_table(current_question_id, answers):
     st.divider()
 
 def render_to_be_kb_table(current_question_id, answers):
-    """Render TO-BE knowledge base table"""
+    """Render TO-BE knowledge base table - EDITABLE version"""
 
     st.markdown("### 📋 Mappatura TO-BE")
-    st.markdown("*Questa tabella si riempie progressivamente con le tue risposte*")
+    st.caption("💡 Clicca su una cella nella colonna 'Contenuto' per modificarla direttamente")
+
+    # Map field keys to display names
+    field_keys = [
+        "to_be_visione", "to_be_agenti", "to_be_input_output", "to_be_azioni_limiti",
+        "to_be_dati_sistemi", "to_be_tool", "to_be_flusso", "to_be_soluzioni",
+        "to_be_tempo", "to_be_benefici", "to_be_rischi", "to_be_system_prompt"
+    ]
+    field_names = [
+        "🎯 Visione",
+        "🤖 Agenti AI",
+        "📥📤 Input/Output",
+        "⚡ Azioni e Limiti",
+        "💾 Dati e Sistemi",
+        "🔧 Tool da integrare",
+        "🔄 Flusso Agentico",
+        "🛒 Soluzioni esistenti",
+        "⏱️ Tempo TO-BE",
+        "✨ Benefici",
+        "⚠️ Rischi",
+        "📜 System Prompt"
+    ]
 
     # Define the KB structure for TO-BE
     kb_data = {
-        "Campo": [
-            "🎯 Visione",
-            "🤖 Agenti AI",
-            "📥📤 Input/Output",
-            "⚡ Azioni e Limiti",
-            "💾 Dati e Sistemi",
-            "🔧 Tool da integrare",
-            "🔄 Flusso Agentico",
-            "🛒 Soluzioni esistenti",
-            "⏱️ Tempo TO-BE",
-            "✨ Benefici",
-            "⚠️ Rischi",
-            "📜 System Prompt"
-        ],
-        "Contenuto": [
-            answers.get("to_be_visione", ""),
-            answers.get("to_be_agenti", ""),
-            answers.get("to_be_input_output", ""),
-            answers.get("to_be_azioni_limiti", ""),
-            answers.get("to_be_dati_sistemi", ""),
-            answers.get("to_be_tool", ""),
-            answers.get("to_be_flusso", ""),
-            answers.get("to_be_soluzioni", ""),
-            answers.get("to_be_tempo", ""),
-            answers.get("to_be_benefici", ""),
-            answers.get("to_be_rischi", ""),
-            answers.get("to_be_system_prompt", "")
-        ],
-        "Status": []
+        "Campo": field_names,
+        "Contenuto": [answers.get(key, "") for key in field_keys]
     }
-
-    # Determine status for each field
-    question_map = {
-        "to_be_visione": 0,
-        "to_be_agenti": 1,
-        "to_be_input_output": 2,
-        "to_be_azioni_limiti": 3,
-        "to_be_dati_sistemi": 4,
-        "to_be_tool": 5,
-        "to_be_flusso": 6,
-        "to_be_soluzioni": 7,
-        "to_be_tempo": 8,
-        "to_be_benefici": 9,
-        "to_be_rischi": 10,
-        "to_be_system_prompt": 11
-    }
-
-    current_index = question_map.get(current_question_id, -1)
-
-    for i, question_id in enumerate(question_map.keys()):
-        if i < current_index:
-            kb_data["Status"].append("✅")
-        elif i == current_index:
-            kb_data["Status"].append("✏️")
-        else:
-            kb_data["Status"].append("⏳")
 
     # Create DataFrame
     df = pd.DataFrame(kb_data)
 
-    # Style the table
-    def style_row(row):
-        if row["Status"] == "✏️":
-            return [f'background-color: {config.COLORS["accent"]}; font-weight: bold'] * len(row)
-        elif row["Status"] == "✅":
-            return [f'background-color: #E8F5E9'] * len(row)
-        else:
-            return ['background-color: #F5F5F5; opacity: 0.6'] * len(row)
+    # Store original state for comparison
+    original_state = df.to_dict('records')
 
-    # Display table
-    styled_df = df.style.apply(style_row, axis=1)
-    st.dataframe(
-        styled_df,
+    # Display editable table
+    edited_df = st.data_editor(
+        df,
+        key="to_be_summary_editor",
         hide_index=True,
         use_container_width=True,
-        height=450
+        height=450,
+        disabled=["Campo"],  # Lock the field names column
+        column_config={
+            "Campo": st.column_config.TextColumn("Campo", width="medium"),
+            "Contenuto": st.column_config.TextColumn("Contenuto", width="large")
+        }
     )
+
+    # Check if table was edited and update answers
+    edited_state = edited_df.to_dict('records')
+    if edited_state != original_state:
+        # Update session state answers from edited table
+        for i, key in enumerate(field_keys):
+            new_value = edited_df.iloc[i]["Contenuto"]
+            if new_value:
+                st.session_state.answers[key] = str(new_value)
+        st.rerun()
 
     # Legend
     col1, col2, col3 = st.columns(3)
