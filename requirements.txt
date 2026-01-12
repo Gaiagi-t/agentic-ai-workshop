@@ -8,4 +8,4 @@ audio-recorder-streamlit>=0.0.10
 fpdf2>=2.7.0
 matplotlib>=3.8.0
 numpy>=1.26.0
-extra-streamlit-components>=0.1.60
+streamlit-js-eval>=0.1.7

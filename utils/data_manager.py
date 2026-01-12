@@ -2,57 +2,57 @@ import json
 import streamlit as st
 from datetime import datetime
 import pandas as pd
-import extra_streamlit_components as stx
+from streamlit_js_eval import streamlit_js_eval
 
-# Cookie key for persistence
-COOKIE_KEY = "agentic_workshop"
+# Key for localStorage
+STORAGE_KEY = "agentic_workshop_data"
 
-def get_cookie_manager():
-    """Get cookie manager instance (stored in session state)"""
-    if "_cookie_manager" not in st.session_state:
-        st.session_state._cookie_manager = stx.CookieManager(key="workshop_cookies")
-    return st.session_state._cookie_manager
-
-def save_to_cookies():
-    """Save current session data to browser cookies"""
+def save_to_storage():
+    """Save current session data to browser localStorage"""
     try:
-        cookie_manager = get_cookie_manager()
         data = {
             "answers": st.session_state.get("answers", {}),
             "current_question": st.session_state.get("current_question_index", 0),
             "section": st.session_state.get("current_section", "AS-IS"),
             "saved_at": datetime.now().isoformat()
         }
-        # Save as JSON string in cookie (expires in 7 days)
-        cookie_manager.set(COOKIE_KEY, json.dumps(data, ensure_ascii=False), expires_at=datetime.now() + pd.Timedelta(days=7))
-    except Exception as e:
-        # Silently fail if cookies not available
+        json_data = json.dumps(data, ensure_ascii=False)
+        # Escape quotes for JavaScript
+        json_escaped = json_data.replace("\\", "\\\\").replace("'", "\\'")
+        streamlit_js_eval(js_expressions=f"localStorage.setItem('{STORAGE_KEY}', '{json_escaped}')")
+    except Exception:
         pass
 
-def load_from_cookies():
-    """Load data from browser cookies and restore session state"""
+def load_from_storage():
+    """Load data from browser localStorage and restore session state"""
     try:
-        cookie_manager = get_cookie_manager()
-        saved_data = cookie_manager.get(COOKIE_KEY)
+        # Check if we already tried to load (to avoid infinite loops)
+        if st.session_state.get("_storage_loaded"):
+            return False
 
-        if saved_data:
-            data = json.loads(saved_data) if isinstance(saved_data, str) else saved_data
+        # Get data from localStorage
+        saved_data = streamlit_js_eval(js_expressions=f"localStorage.getItem('{STORAGE_KEY}')", key="load_storage")
+
+        if saved_data and isinstance(saved_data, str):
+            data = json.loads(saved_data)
 
             # Only restore if we don't already have data
-            if not st.session_state.get("answers") and data.get("answers"):
+            if data.get("answers") and not st.session_state.get("answers"):
                 st.session_state.answers = data.get("answers", {})
                 st.session_state.current_question_index = data.get("current_question", 0)
                 st.session_state.current_section = data.get("section", "AS-IS")
+                st.session_state._storage_loaded = True
                 return True
-    except Exception as e:
+    except Exception:
         pass
+
+    st.session_state._storage_loaded = True
     return False
 
-def clear_cookies():
-    """Clear saved data from cookies"""
+def clear_storage():
+    """Clear saved data from localStorage"""
     try:
-        cookie_manager = get_cookie_manager()
-        cookie_manager.delete(COOKIE_KEY)
+        streamlit_js_eval(js_expressions=f"localStorage.removeItem('{STORAGE_KEY}')")
     except Exception:
         pass
 
@@ -63,14 +63,15 @@ def reset_project():
     st.session_state.current_question_index = 0
     st.session_state.current_section = "AS-IS"
     st.session_state.analysis_results = None
+    st.session_state._storage_loaded = False
 
     # Clear any widget keys that might have cached values
     keys_to_clear = [k for k in st.session_state.keys() if k.startswith("text_") or k.startswith("temp_")]
     for key in keys_to_clear:
         del st.session_state[key]
 
-    # Clear cookies
-    clear_cookies()
+    # Clear localStorage
+    clear_storage()
 
 def render_new_project_button():
     """Render button to start a new project"""
@@ -80,9 +81,9 @@ def render_new_project_button():
         st.rerun()
 
 def auto_save():
-    """Auto-save current state to cookies (call periodically)"""
+    """Auto-save current state to localStorage (call periodically)"""
     if st.session_state.get("answers"):
-        save_to_cookies()
+        save_to_storage()
 
 def export_to_json():
     """Export current session data to JSON format"""
