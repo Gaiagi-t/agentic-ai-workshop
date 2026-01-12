@@ -1,0 +1,197 @@
+import json
+import streamlit as st
+from datetime import datetime
+import pandas as pd
+
+def export_to_json():
+    """Export current session data to JSON format"""
+
+    export_data = {
+        "metadata": {
+            "export_date": datetime.now().isoformat(),
+            "app_version": "1.0.0",
+            "workshop": "Agentic AI Workshop - iFAB"
+        },
+        "answers": st.session_state.answers,
+        "current_question": st.session_state.current_question_index,
+        "section": st.session_state.current_section,
+        "analysis": st.session_state.get("analysis_results", None)
+    }
+
+    json_string = json.dumps(export_data, indent=2, ensure_ascii=False)
+    return json_string
+
+def import_from_json(json_string):
+    """Import session data from JSON string"""
+
+    try:
+        data = json.loads(json_string)
+
+        # Validate data structure
+        if "answers" not in data:
+            return False, "File JSON non valido: manca la sezione 'answers'"
+
+        # Load data into session state
+        st.session_state.answers = data.get("answers", {})
+        st.session_state.current_question_index = data.get("current_question", 0)
+        st.session_state.current_section = data.get("section", "AS-IS")
+
+        # Load analysis if present
+        if "analysis" in data and data["analysis"]:
+            st.session_state.analysis_results = data["analysis"]
+
+        # Don't set show_analysis here - let the user navigate freely
+        # The analysis section will check if data is sufficient
+
+        return True, "Dati importati con successo!"
+
+    except json.JSONDecodeError as e:
+        return False, f"Errore nel parsing del JSON: {str(e)}"
+    except Exception as e:
+        return False, f"Errore nell'importazione: {str(e)}"
+
+def download_button():
+    """Render download button for exporting data"""
+
+    json_data = export_to_json()
+
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"agentic_ai_project_{timestamp}.json"
+
+    st.download_button(
+        label="📥 Esporta Progetto (JSON)",
+        data=json_data,
+        file_name=filename,
+        mime="application/json",
+        help="Scarica il tuo progetto per salvarlo o condividerlo"
+    )
+
+def upload_button():
+    """Render upload button for importing data"""
+
+    # Initialize upload counter if not exists
+    if 'upload_counter' not in st.session_state:
+        st.session_state.upload_counter = 0
+
+    uploaded_file = st.file_uploader(
+        "📤 Importa Progetto",
+        type=["json"],
+        help="Carica un file JSON precedentemente esportato",
+        key=f"file_uploader_{st.session_state.upload_counter}"
+    )
+
+    if uploaded_file is not None:
+        # Read and import the file
+        try:
+            json_string = uploaded_file.read().decode("utf-8")
+            success, message = import_from_json(json_string)
+
+            if success:
+                st.success(message)
+                # Increment counter to reset the file uploader on next render
+                st.session_state.upload_counter += 1
+                # Small delay to show success message
+                import time
+                time.sleep(0.5)
+                st.rerun()
+            else:
+                st.error(message)
+        except Exception as e:
+            st.error(f"Errore durante la lettura del file: {str(e)}")
+
+def get_progress_stats():
+    """Calculate progress statistics"""
+
+    from utils.questions import QUESTIONS
+
+    total_as_is = len(QUESTIONS["AS-IS"])
+    total_to_be = len(QUESTIONS["TO-BE"])
+    total_questions = total_as_is + total_to_be
+
+    answered_as_is = sum(
+        1 for q in QUESTIONS["AS-IS"]
+        if q["id"] in st.session_state.answers and st.session_state.answers[q["id"]]
+    )
+
+    answered_to_be = sum(
+        1 for q in QUESTIONS["TO-BE"]
+        if q["id"] in st.session_state.answers and st.session_state.answers[q["id"]]
+    )
+
+    total_answered = answered_as_is + answered_to_be
+
+    return {
+        "total": total_questions,
+        "answered": total_answered,
+        "percentage": (total_answered / total_questions * 100) if total_questions > 0 else 0,
+        "as_is": {"answered": answered_as_is, "total": total_as_is},
+        "to_be": {"answered": answered_to_be, "total": total_to_be}
+    }
+
+def get_answers_summary():
+    """Get a summary of all answers for display"""
+
+    from utils.questions import QUESTIONS
+
+    summary = {
+        "AS-IS": [],
+        "TO-BE": []
+    }
+
+    for section_name, questions in QUESTIONS.items():
+        if section_name == "CONFRONTO":
+            continue
+
+        for q in questions:
+            answer = st.session_state.answers.get(q["id"], "")
+            if answer:
+                summary[section_name].append({
+                    "numero": q.get("numero", ""),
+                    "domanda": q["testo"],
+                    "risposta": answer,
+                    "obbligatorio": q.get("obbligatorio", False)
+                })
+
+    return summary
+
+def render_answers_sidebar():
+    """Render answers summary in sidebar"""
+
+    stats = get_progress_stats()
+
+    st.sidebar.markdown("### 📊 Progresso")
+
+    # Overall progress bar
+    st.sidebar.progress(stats["percentage"] / 100)
+    st.sidebar.caption(f"{stats['answered']}/{stats['total']} domande completate")
+
+    # Section progress
+    st.sidebar.markdown("#### Sezioni")
+
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        st.metric(
+            "AS-IS",
+            f"{stats['as_is']['answered']}/{stats['as_is']['total']}"
+        )
+    with col2:
+        st.metric(
+            "TO-BE",
+            f"{stats['to_be']['answered']}/{stats['to_be']['total']}"
+        )
+
+    # Summary expander
+    with st.sidebar.expander("📝 Riepilogo Risposte"):
+        summary = get_answers_summary()
+
+        for section_name, answers in summary.items():
+            if answers:
+                st.markdown(f"**{section_name}**")
+                for item in answers:
+                    with st.container():
+                        st.caption(f"Q{item['numero']}: {item['domanda'][:50]}...")
+                        # Truncate long answers
+                        short_answer = item['risposta'][:100] + "..." if len(item['risposta']) > 100 else item['risposta']
+                        st.text(short_answer)
+                        st.divider()

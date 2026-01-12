@@ -1,0 +1,26 @@
+[theme]
+primaryColor = "#1b98e0"  # IFAB Main Blue
+backgroundColor = "#FFFFFF"  # White
+secondaryBackgroundColor = "#F8FAFC"  # Light gray
+textColor = "#333333"  # Dark gray text
+font = "sans serif"
+
+[server]
+headless = true
+enableCORS = false
+enableXsrfProtection = false
+port = 8501
+maxUploadSize = 50
+maxMessageSize = 200
+
+# Multi-user settings
+[browser]
+gatherUsageStats = false
+
+[runner]
+fastReruns = true
+
+# HTTPS Configuration (per microfono su rete locale)
+# Genera certificati con: generate-ssl-cert.bat (Windows) o generate-ssl-cert.sh (Mac/Linux)
+sslCertFile = "cert.pem"
+sslKeyFile = "key.pem"

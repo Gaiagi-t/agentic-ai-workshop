@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.json
+!requirements.txt
+temp/
+*.log
+
+# API Keys (if accidentally committed)
+config_local.py
+.env
+
+# SSL Certificates (self-signed)
+*.pem
+cert.crt
+*.key
