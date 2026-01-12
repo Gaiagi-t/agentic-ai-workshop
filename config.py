@@ -1,19 +1,17 @@
 # Configuration file for Agentic AI Workshop App
 import os
 
-# API Keys - Read from st.secrets (Streamlit Cloud) or environment variables
 def get_api_key(key_name):
-    """Get API key from Streamlit secrets or environment variables"""
+    """Get API key from Streamlit secrets or environment variables (called when needed)"""
+    # First try Streamlit secrets
     try:
         import streamlit as st
         if hasattr(st, 'secrets') and key_name in st.secrets:
             return st.secrets[key_name]
-    except:
+    except Exception:
         pass
+    # Fallback to environment variables
     return os.environ.get(key_name, "")
-
-ANTHROPIC_API_KEY = get_api_key("ANTHROPIC_API_KEY")
-OPENAI_API_KEY = get_api_key("OPENAI_API_KEY")
 
 # IFAB Brand Colors (from official website www.ifabfoundation.org)
 COLORS = {

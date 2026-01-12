@@ -7,8 +7,8 @@ import config
 
 def setup_voice_input():
     """Initialize OpenAI client for Whisper API"""
-    # Try session_state first, then config
-    api_key = st.session_state.get("openai_api_key") or config.OPENAI_API_KEY
+    # Try session_state first, then config (lazy loading)
+    api_key = st.session_state.get("openai_api_key") or config.get_api_key("OPENAI_API_KEY")
 
     if not api_key:
         return None
@@ -76,7 +76,7 @@ def voice_input_component(question_text, help_text=""):
     st.markdown("### 🎤 Registra la tua risposta")
 
     # Check if OpenAI API key is set (in session_state or config)
-    has_api_key = st.session_state.get("openai_api_key") or config.OPENAI_API_KEY
+    has_api_key = st.session_state.get("openai_api_key") or config.get_api_key("OPENAI_API_KEY")
 
     if not has_api_key:
         st.error("⚠️ API Key OpenAI non configurata")

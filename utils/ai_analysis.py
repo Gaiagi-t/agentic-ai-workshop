@@ -12,8 +12,13 @@ def analyze_with_claude(answers):
     Returns:
         dict: Analysis results with multiple sections
     """
+    # Get API key lazily (reads from st.secrets when called)
+    api_key = config.get_api_key("ANTHROPIC_API_KEY")
+    if not api_key:
+        st.error("❌ API Key Anthropic non configurata. Vai su Settings → Secrets e aggiungi ANTHROPIC_API_KEY")
+        return None
 
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    client = Anthropic(api_key=api_key)
 
     # Prepare the analysis prompt
     prompt = build_analysis_prompt(answers)
