@@ -7,10 +7,11 @@ import extra_streamlit_components as stx
 # Cookie key for persistence
 COOKIE_KEY = "agentic_workshop"
 
-@st.cache_resource
 def get_cookie_manager():
-    """Get singleton cookie manager instance"""
-    return stx.CookieManager()
+    """Get cookie manager instance (stored in session state)"""
+    if "_cookie_manager" not in st.session_state:
+        st.session_state._cookie_manager = stx.CookieManager(key="workshop_cookies")
+    return st.session_state._cookie_manager
 
 def save_to_cookies():
     """Save current session data to browser cookies"""
