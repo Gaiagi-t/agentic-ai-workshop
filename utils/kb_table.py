@@ -70,26 +70,30 @@ def update_answers_from_table(edited_df, answers):
     Converts table data back to text format for storage
     Also syncs text widget keys for proper UI reflection
     """
-    # Extract steps
+    # Extract steps - filter out None/empty and convert to string
     steps = edited_df["Attività"].tolist()
-    steps_text = "\n".join(steps)
-    st.session_state.answers["as_is_step"] = steps_text
-    # Sync text widget
-    if "text_as_is_step" in st.session_state:
-        st.session_state["text_as_is_step"] = steps_text
+    steps_clean = [str(s) if s is not None else "" for s in steps]
+    steps_text = "\n".join([s for s in steps_clean if s.strip()])
+    if steps_text.strip():
+        st.session_state.answers["as_is_step"] = steps_text
+        # Sync text widget
+        if "text_as_is_step" in st.session_state:
+            st.session_state["text_as_is_step"] = steps_text
 
-    # Extract roles
+    # Extract roles - filter out None/empty and convert to string
     ruoli = edited_df["Chi la svolge"].tolist()
-    ruoli_text = "\n".join([r if r else "" for r in ruoli])
+    ruoli_clean = [str(r) if r is not None else "" for r in ruoli]
+    ruoli_text = "\n".join(ruoli_clean)
     if ruoli_text.strip():
         st.session_state.answers["as_is_ruoli"] = ruoli_text
         # Sync text widget
         if "text_as_is_ruoli" in st.session_state:
             st.session_state["text_as_is_ruoli"] = ruoli_text
 
-    # Extract time
+    # Extract time - filter out None/empty and convert to string
     tempo = edited_df["Tempo"].tolist()
-    tempo_text = "\n".join([t if t else "" for t in tempo])
+    tempo_clean = [str(t) if t is not None else "" for t in tempo]
+    tempo_text = "\n".join(tempo_clean)
     if tempo_text.strip():
         st.session_state.answers["as_is_tempo"] = tempo_text
         # Sync text widget
@@ -188,7 +192,8 @@ def render_as_is_summary_table(current_question_id, answers):
         # Update session state answers from edited table
         for i, key in enumerate(field_keys):
             new_value = edited_df.iloc[i]["Contenuto"]
-            if new_value:
+            # Handle None values - convert to string safely
+            if new_value is not None and str(new_value).strip():
                 st.session_state.answers[key] = str(new_value)
                 # Also update the text widget key so it reflects the change
                 widget_key = f"text_{key}"
@@ -204,14 +209,14 @@ def render_as_is_kb_table_step_based(current_question_id, answers):
     st.markdown("### 📋 Mappatura AS-IS")
     st.markdown("*Questa tabella si compila progressivamente con le tue risposte*")
 
-    # Always show summary table first
-    render_as_is_summary_table(current_question_id, answers)
-
     # Parse steps
     step_text = answers.get("as_is_step", "")
     steps = parse_steps(step_text)
 
+    # Show ONLY ONE table: summary table if no steps, step-based table if steps exist
     if not steps:
+        # No steps yet - show the summary table
+        render_as_is_summary_table(current_question_id, answers)
         st.info("""
         👉 **Inserisci gli step del processo** (Domanda 2) per vedere la tabella dettagliata editabile!
         """)
@@ -484,7 +489,8 @@ def render_to_be_kb_table(current_question_id, answers):
         # Update session state answers from edited table
         for i, key in enumerate(field_keys):
             new_value = edited_df.iloc[i]["Contenuto"]
-            if new_value:
+            # Handle None values - convert to string safely
+            if new_value is not None and str(new_value).strip():
                 st.session_state.answers[key] = str(new_value)
                 # Also update the text widget key so it reflects the change
                 widget_key = f"text_{key}"
