@@ -20,7 +20,7 @@ gatherUsageStats = false
 [runner]
 fastReruns = true
 
-# HTTPS Configuration (per microfono su rete locale)
+# HTTPS Configuration (solo per sviluppo locale - non usare su Streamlit Cloud)
 # Genera certificati con: generate-ssl-cert.bat (Windows) o generate-ssl-cert.sh (Mac/Linux)
-sslCertFile = "cert.pem"
-sslKeyFile = "key.pem"
+# sslCertFile = "cert.pem"
+# sslKeyFile = "key.pem"
